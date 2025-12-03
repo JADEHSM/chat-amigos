@@ -1,11 +1,11 @@
-body { font-family: Arial; margin: 0; background: #25D366; color: white; }
-.screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-.hidden { display: none; }
-.header { display: flex; justify-content: space-between; padding: 10px; background: #128C7E; }
-.sidebar { width: 300px; background: #075E54; padding: 10px; height: 100vh; overflow-y: auto; }
-.chat { flex: 1; display: flex; flex-direction: column; }
-#messages { flex: 1; padding: 10px; background: #E5DDD5; color: black; overflow-y: auto; }
-input, button { padding: 10px; margin: 5px 0; border: none; border-radius: 5px; }
-button { background: #25D366; color: white; cursor: pointer; }
-.friend { padding: 10px; background: #FFFFFF20; margin: 5px 0; cursor: pointer; }
-.group { padding: 10px; background: #00A884; margin: 5px 0; cursor: pointer; }
+.box {
+  background: #ffffff20;
+  padding: 15px;
+  margin: 10px;
+  border-radius: 12px;
+  width: 80%;
+  max-width: 320px;
+}
+.box h2 {
+  margin-bottom: 8px;
+}
