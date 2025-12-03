@@ -1,105 +1,181 @@
-let users = JSON.parse(localStorage.getItem('users')) || {};
+// 1) SUA CONFIG DO FIREBASE AQUI
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "SUA_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
 let currentUser = '';
 let currentChat = '';
-let friends = {};
-let groups = {};
-let messages = {};
+let unsubscribeChats = null;
 
-function login() {
-    const name = document.getElementById('username').value.trim();
-    if (!name || users[name]) return alert('Nome já existe ou vazio!');
-    currentUser = name;
-    users[name] = { friends: {}, requests: {} };
-    friends[name] = true;
-    localStorage.setItem('users', JSON.stringify(users));
-    document.getElementById('login').classList.add('hidden');
-    document.getElementById('main').classList.remove('hidden');
-    document.getElementById('userDisplay').textContent = name;
-    updateLists();
-}
+// ---------- REGISTRAR (CRIAR CONTA) ----------
+async function registerUser() {
+  const name = document.getElementById('registerName').value.trim();
+  if (!name) {
+    alert('Digite um nome para registrar!');
+    return;
+  }
 
-function logout() {
-    currentUser = '';
-    document.getElementById('main').classList.add('hidden');
-    document.getElementById('login').classList.remove('hidden');
-    document.getElementById('username').value = '';
-}
-
-function addFriendRequest() {
-    const friend = document.getElementById('addFriend').value.trim();
-    if (!friend || friend === currentUser || users[friend]) return alert('Nome inválido!');
-    users[currentUser].requests[friend] = true;
-    alert(`Pedido enviado para ${friend}`);
-    document.getElementById('addFriend').value = '';
-    localStorage.setItem('users', JSON.stringify(users));
-}
-
-function acceptRequest(friend) {
-    users[currentUser].friends[friend] = true;
-    delete users[currentUser].requests[friend];
-    delete users[friend].requests[currentUser];
-    localStorage.setItem('users', JSON.stringify(users));
-    updateLists();
-}
-
-function createGroup() {
-    const name = prompt('Nome do grupo:');
-    if (name) {
-        groups[name] = Object.keys(users[currentUser].friends);
-        updateLists();
+  try {
+    const doc = await db.collection('users').doc(name).get();
+    if (doc.exists) {
+      alert('Esse nome já existe, escolha outro.');
+      return;
     }
+
+    // cria conta anônima só pra ter sessão
+    await auth.signInAnonymously();
+
+    await db.collection('users').doc(name).set({
+      name,
+      friends: {},
+      groups: [],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert('Registrado com sucesso! Agora use esse nome na parte de ENTRAR.');
+    document.getElementById('registerName').value = '';
+    await auth.signOut();
+  } catch (e) {
+    alert('Erro ao registrar: ' + e.message);
+  }
 }
 
-function updateLists() {
-    const friendsList = document.getElementById('friendsList');
-    friendsList.innerHTML = '';
-    Object.keys(users[currentUser]?.friends || {}).forEach(friend => {
-        const div = document.createElement('div');
-        div.className = 'friend';
-        div.textContent = friend;
-        div.onclick = () => openChat(friend);
-        friendsList.appendChild(div);
-    });
-    
-    const requestsList = document.getElementById('friendsList');
-    Object.keys(users[currentUser]?.requests || {}).forEach(req => {
-        const div = document.createElement('div');
-        div.textContent = `${req} (pedido)`;
-        const acceptBtn = document.createElement('button');
-        acceptBtn.textContent = 'Aceitar';
-        acceptBtn.onclick = () => acceptRequest(req);
-        div.appendChild(acceptBtn);
-        friendsList.appendChild(div);
-    });
-    
-    const groupsList = document.getElementById('groupsList');
-    groupsList.innerHTML = '';
-    Object.keys(groups).forEach(group => {
-        const div = document.createElement('div');
-        div.className = 'group';
-        div.textContent = group;
-        div.onclick = () => openChat(group);
-        groupsList.appendChild(div);
-    });
+// ---------- LOGIN (ENTRAR COM NOME JÁ REGISTRADO) ----------
+async function loginUser() {
+  const name = document.getElementById('loginName').value.trim();
+  if (!name) {
+    alert('Digite seu nome de login!');
+    return;
+  }
+
+  try {
+    const doc = await db.collection('users').doc(name).get();
+    if (!doc.exists) {
+      alert('Esse nome ainda não foi registrado. Use primeiro a parte de REGISTRAR.');
+      return;
+    }
+
+    await auth.signInAnonymously();
+    currentUser = name;
+
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainScreen').classList.remove('hidden');
+    document.getElementById('currentUser').textContent = name;
+
+    loadChats();
+  } catch (e) {
+    alert('Erro ao entrar: ' + e.message);
+  }
 }
 
-function openChat(target) {
-    currentChat = target;
-    document.getElementById('chatHeader').textContent = target;
-    const msgs = document.getElementById('messages');
-    msgs.innerHTML = messages[currentChat] ? messages[currentChat].map(m => `<div>${m}</div>`).join('') : '';
+// ---------- LOGOUT ----------
+function logout() {
+  if (unsubscribeChats) unsubscribeChats();
+  auth.signOut();
+  currentUser = '';
+  currentChat = '';
+  document.getElementById('mainScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginName').value = '';
 }
 
-function sendMessage() {
-    const msg = document.getElementById('messageInput').value.trim();
-    if (!msg || !currentChat) return;
-    if (!messages[currentChat]) messages[currentChat] = [];
-    messages[currentChat].push(`${currentUser}: ${msg}`);
-    document.getElementById('messageInput').value = '';
-    openChat(currentChat); // Atualiza chat
-    localStorage.setItem('messages', JSON.stringify(messages));
+// ---------- CARREGAR AMIGOS / GRUPOS ----------
+async function loadChats() {
+  const snap = await db.collection('users').doc(currentUser).get();
+  const data = snap.data() || {};
+
+  const friendsList = document.getElementById('friendsList');
+  friendsList.innerHTML = '';
+  Object.keys(data.friends || {}).forEach(friendId => {
+    const div = document.createElement('div');
+    div.className = 'chat-item';
+    div.textContent = friendId;
+    div.onclick = () => openChat(friendId);
+    friendsList.appendChild(div);
+  });
+
+  const groupsList = document.getElementById('groupsList');
+  groupsList.innerHTML = '';
+  (data.groups || []).forEach(groupId => {
+    const div = document.createElement('div');
+    div.className = 'chat-item';
+    div.textContent = '👥 ' + groupId;
+    div.onclick = () => openChat(groupId);
+    groupsList.appendChild(div);
+  });
+}
+
+// ---------- ADICIONAR AMIGO (apenas exemplo simples) ----------
+async function addFriend() {
+  const friend = document.getElementById('searchFriend').value.trim();
+  if (!friend || friend === currentUser) return;
+
+  const friendDoc = await db.collection('users').doc(friend).get();
+  if (!friendDoc.exists) {
+    alert('Esse nome não está registrado.');
+    return;
+  }
+
+  await db.collection('users').doc(currentUser).set({
+    friends: { [friend]: true }
+  }, { merge: true });
+
+  await db.collection('users').doc(friend).set({
+    friends: { [currentUser]: true }
+  }, { merge: true });
+
+  document.getElementById('searchFriend').value = '';
+  loadChats();
+}
+
+// ---------- ABRIR CHAT ----------
+function openChat(chatId) {
+  currentChat = chatId;
+  document.getElementById('chatHeader').textContent = chatId;
+
+  if (unsubscribeChats) unsubscribeChats();
+
+  const list = document.getElementById('messagesList');
+  list.innerHTML = '';
+
+  const ref = db.collection('chats').doc(chatId).collection('messages');
+  unsubscribeChats = ref.orderBy('timestamp').onSnapshot(snap => {
+    list.innerHTML = '';
+    snap.forEach(doc => {
+      const msg = doc.data();
+      const div = document.createElement('div');
+      div.className = 'message ' + (msg.sender === currentUser ? 'sent' : 'received');
+      div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.text}`;
+      list.appendChild(div);
+    });
+    list.scrollTop = list.scrollHeight;
+  });
+}
+
+// ---------- ENVIAR MENSAGEM ----------
+async function sendMessage() {
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if (!text || !currentChat) return;
+
+  await db.collection('chats').doc(currentChat).collection('messages').add({
+    sender: currentUser,
+    text,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  input.value = '';
 }
 
 document.getElementById('messageInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendMessage();
+  if (e.key === 'Enter') sendMessage();
 });
