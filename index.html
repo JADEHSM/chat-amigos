@@ -1,15 +1,71 @@
-<div id="loginScreen" class="screen">
-  <h1>🎉 Chat Amigos</h1>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Chat Amigos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- TELA DE REGISTRO / LOGIN -->
+  <div id="authScreen" class="screen">
+    <h1>Chat Amigos</h1>
 
-  <div id="registerBox" class="box">
-    <h2>Registrar</h2>
-    <input id="registerName" placeholder="Novo nome (único)" maxlength="12">
-    <button onclick="registerUser()">Registrar</button>
+    <div class="auth-box">
+      <h2>Registrar</h2>
+      <input id="registerName" maxlength="16" placeholder="Novo nome (único)">
+      <button onclick="registerUser()">Registrar</button>
+      <p class="hint">Não pode repetir nome já existente.</p>
+    </div>
+
+    <div class="auth-box">
+      <h2>Entrar</h2>
+      <input id="loginName" maxlength="16" placeholder="Seu nome registrado">
+      <button onclick="loginUser()">Entrar</button>
+    </div>
   </div>
 
-  <div id="loginBox" class="box">
-    <h2>Entrar</h2>
-    <input id="loginName" placeholder="Seu nome já registrado" maxlength="12">
-    <button onclick="loginUser()">Entrar</button>
+  <!-- TELA PRINCIPAL -->
+  <div id="mainScreen" class="screen hidden">
+    <header class="topbar">
+      <span id="currentUser"></span>
+      <button class="btn-small" onclick="logout()">Sair</button>
+    </header>
+
+    <div class="content">
+      <!-- COLUNA ESQUERDA -->
+      <aside class="sidebar">
+        <div class="block">
+          <h3>Adicionar amigo</h3>
+          <input id="friendInput" placeholder="Nome do amigo">
+          <button onclick="sendFriendRequest()">Enviar pedido</button>
+        </div>
+
+        <div class="block">
+          <h3>Pedidos recebidos</h3>
+          <div id="requestsList" class="list"></div>
+        </div>
+
+        <div class="block">
+          <h3>Amigos</h3>
+          <div id="friendsList" class="list"></div>
+        </div>
+      </aside>
+
+      <!-- ÁREA DO CHAT -->
+      <main class="chat-area">
+        <div class="chat-header">
+          <span id="chatTitle">Nenhum chat aberto</span>
+        </div>
+        <div id="messagesList" class="messages"></div>
+        <div class="chat-input">
+          <input id="messageInput" placeholder="Digite uma mensagem..." autocomplete="off">
+          <button onclick="sendMessage()">Enviar</button>
+        </div>
+      </main>
+    </div>
   </div>
-</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
