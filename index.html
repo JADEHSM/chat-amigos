@@ -1,37 +1,15 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <title>Chat Amigos</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div id="login" class="screen">
-        <h1>Entre com seu nome</h1>
-        <input id="username" placeholder="Nome único" maxlength="15">
-        <button onclick="login()">Entrar</button>
-    </div>
-    <div id="main" class="screen hidden">
-        <div class="header">
-            <h2 id="userDisplay"></h2>
-            <button onclick="logout()">Sair</button>
-        </div>
-        <div class="sidebar">
-            <input id="addFriend" placeholder="Adicionar amigo">
-            <button onclick="addFriendRequest()">Adicionar</button>
-            <h3>Amigos</h3>
-            <div id="friendsList"></div>
-            <h3>Grupos</h3>
-            <button onclick="createGroup()">Novo Grupo</button>
-            <div id="groupsList"></div>
-        </div>
-        <div class="chat">
-            <div id="chatHeader"></div>
-            <div id="messages"></div>
-            <input id="messageInput" placeholder="Digite mensagem">
-            <button onclick="sendMessage()">Enviar</button>
-        </div>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>
+<div id="loginScreen" class="screen">
+  <h1>🎉 Chat Amigos</h1>
+
+  <div id="registerBox" class="box">
+    <h2>Registrar</h2>
+    <input id="registerName" placeholder="Novo nome (único)" maxlength="12">
+    <button onclick="registerUser()">Registrar</button>
+  </div>
+
+  <div id="loginBox" class="box">
+    <h2>Entrar</h2>
+    <input id="loginName" placeholder="Seu nome já registrado" maxlength="12">
+    <button onclick="loginUser()">Entrar</button>
+  </div>
+</div>
